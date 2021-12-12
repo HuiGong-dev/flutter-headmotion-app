@@ -56,6 +56,9 @@ class _MyHomePageState extends State<MyHomePage> {
       EventChannel('com.huigong.headmotion/attitude');
 
   String _sensorAvailable = "Unknown";
+  Map _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
+  String _lastMotionType = "still";
+  String _currentMotionType = "still";
   double _attitudePitchReading = 0;
   double _attitudeRollReading = 0;
   double _attitudeYawReading = 0;
@@ -68,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _sensorAvailable = available.toString();
       });
     } on PlatformException catch (e) {
-      print(e);
+      debugPrint(e.toString());
     }
   }
 
@@ -76,11 +79,77 @@ class _MyHomePageState extends State<MyHomePage> {
     attitudeSubscription =
         attitudeChannel.receiveBroadcastStream().listen((event) {
       setState(() {
+        _currentAttitude = {
+          "pitch": event["pitch"],
+          "roll": event["roll"],
+          "yaw": event["yaw"]
+        };
+        _currentMotionType = _getMotionType(_currentAttitude);
         _attitudePitchReading = event["pitch"];
         _attitudeRollReading = event["roll"];
         _attitudeYawReading = event["yaw"];
       });
     });
+  }
+
+  // _updateMotionType() {
+  //   _lastMotionType = _currentMotionType;
+  // }
+
+  double _max(Map attitudeMap) {
+    double pitch = attitudeMap["pitch"];
+    double roll = attitudeMap["roll"];
+    double yaw = attitudeMap["yaw"];
+
+    if (pitch.abs() >= roll.abs()) {
+      if (pitch.abs() >= yaw.abs()) {
+        return pitch;
+      } else {
+        return yaw;
+      }
+    } else {
+      if (roll.abs() >= yaw.abs()) {
+        return roll;
+      } else {
+        return yaw;
+      }
+    }
+  }
+
+  String _getMotionType(Map attitudeMap) {
+    double? pitch = attitudeMap["pitch"];
+    double? roll = attitudeMap["roll"];
+    double? yaw = attitudeMap["yaw"];
+
+    double maxValue = _max(attitudeMap);
+
+    if (maxValue.abs() < 0.5) {
+      return "still";
+    }
+    if (maxValue == roll) {
+      if (maxValue.isNegative) {
+        return "tilt left";
+      } else {
+        return "tilt right";
+      }
+    }
+
+    if (maxValue == pitch) {
+      if (maxValue.isNegative) {
+        return "tilt forward";
+      } else {
+        return "tilt backward";
+      }
+    }
+
+    if (maxValue == yaw) {
+      if (maxValue.isNegative) {
+        return "look right";
+      } else {
+        return "look left";
+      }
+    }
+    return "still";
   }
 
   _stopReading() {
@@ -119,7 +188,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 Pitch: $_attitudePitchReading 
                 Roll: $_attitudeRollReading 
                 Yaw: $_attitudeYawReading
+                type: $_currentMotionType
                 '''),
+              if (_currentMotionType != _lastMotionType &&
+                  _currentMotionType != "still")
+                Text("motion type: $_currentMotionType"),
               if (_sensorAvailable == 'true' &&
                   _attitudeRollReading == 0 &&
                   _attitudePitchReading == 0 &&
