@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import './questions.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
@@ -28,11 +29,12 @@ class MyHomePageState extends State<MyHomePage> {
 
   String _sensorAvailable = "Unknown";
   Map _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
-  String _lastMotionType = "still";
-  String _currentMotionType = "still";
+  String lastMotionType = "still";
+  String currentMotionType = "still";
   double _attitudePitchReading = 0;
   double _attitudeRollReading = 0;
   double _attitudeYawReading = 0;
+  bool _isReading = false;
   late StreamSubscription attitudeSubscription;
 
   Future<void> _checkAvailability() async {
@@ -55,23 +57,19 @@ class MyHomePageState extends State<MyHomePage> {
           "roll": event["roll"],
           "yaw": event["yaw"]
         };
-        _currentMotionType = _getMotionType(_currentAttitude);
+        currentMotionType = _getMotionType(_currentAttitude);
         _attitudePitchReading = event["pitch"];
         _attitudeRollReading = event["roll"];
         _attitudeYawReading = event["yaw"];
       });
-      if (_currentMotionType != _lastMotionType &&
-          _currentMotionType != "still") {
-        // ignore: todo
-        //todo: handle motion event
-        debugPrint("$_currentMotionType once");
-      }
+
+      _isReading = true;
       _updateMotionType();
     });
   }
 
   _updateMotionType() {
-    _lastMotionType = _currentMotionType;
+    lastMotionType = currentMotionType;
   }
 
   double _max(Map attitudeMap) {
@@ -137,6 +135,7 @@ class MyHomePageState extends State<MyHomePage> {
       _attitudeYawReading = 0;
     });
     attitudeSubscription.cancel();
+    _isReading = false;
   }
 
   @override
@@ -166,7 +165,7 @@ class MyHomePageState extends State<MyHomePage> {
                 Pitch: $_attitudePitchReading 
                 Roll: $_attitudeRollReading 
                 Yaw: $_attitudeYawReading
-                type: $_currentMotionType
+                type: $currentMotionType
                 '''),
               if (_sensorAvailable == 'true' &&
                   _attitudeRollReading == 0 &&
@@ -181,6 +180,17 @@ class MyHomePageState extends State<MyHomePage> {
                 ElevatedButton(
                     onPressed: () => _stopReading(),
                     child: const Text('Stop Reading')),
+              const SizedBox(
+                height: 50,
+              ),
+              if (_sensorAvailable == 'true' && _isReading == true)
+                ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) =>
+                              const Questions(title: 'test nav')));
+                    },
+                    child: const Text('Go to Answer Questions')),
             ],
           )),
     );
