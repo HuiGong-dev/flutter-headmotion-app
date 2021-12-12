@@ -1,4 +1,4 @@
-# flutter-headmotion-app
+# Flutter-headmotion-app
 
 A new Flutter project.
 
