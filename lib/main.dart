@@ -89,12 +89,19 @@ class _MyHomePageState extends State<MyHomePage> {
         _attitudeRollReading = event["roll"];
         _attitudeYawReading = event["yaw"];
       });
+      if (_currentMotionType != _lastMotionType &&
+          _currentMotionType != "still") {
+        // ignore: todo
+        //todo: handle motion event
+        debugPrint("$_currentMotionType once");
+      }
+      _updateMotionType();
     });
   }
 
-  // _updateMotionType() {
-  //   _lastMotionType = _currentMotionType;
-  // }
+  _updateMotionType() {
+    _lastMotionType = _currentMotionType;
+  }
 
   double _max(Map attitudeMap) {
     double pitch = attitudeMap["pitch"];
@@ -190,9 +197,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 Yaw: $_attitudeYawReading
                 type: $_currentMotionType
                 '''),
-              if (_currentMotionType != _lastMotionType &&
-                  _currentMotionType != "still")
-                Text("motion type: $_currentMotionType"),
               if (_sensorAvailable == 'true' &&
                   _attitudeRollReading == 0 &&
                   _attitudePitchReading == 0 &&
