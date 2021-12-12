@@ -26,9 +26,11 @@ class AttitudeStreamHandler : NSObject, FlutterStreamHandler {
         if APP.isDeviceMotionAvailable{
             APP.startDeviceMotionUpdates(to: queue) { (data, error) in
                 if data != nil {
-                    //get attitude roll
-                    let attitudeRoll = data?.attitude.roll
-                    events(attitudeRoll)
+                    //get attitude
+                    //create a dict for attitude pitch, roll and yaw.
+                    var attitudeDict = ["pitch":data?.attitude.pitch, "roll":data?.attitude.roll, "yaw":data?.attitude.yaw]
+                    // let attitudeRoll = data?.attitude.roll
+                    events(attitudeDict)
                 }
                 
             }

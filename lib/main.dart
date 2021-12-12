@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'CM Airpods pro Home Page'),
+      home: const MyHomePage(title: 'Core Motion Airpods Pro'),
     );
   }
 }
@@ -56,9 +56,9 @@ class _MyHomePageState extends State<MyHomePage> {
       EventChannel('com.huigong.headmotion/attitude');
 
   String _sensorAvailable = "Unknown";
-  // double _attitudePitchReading = 0;
+  double _attitudePitchReading = 0;
   double _attitudeRollReading = 0;
-  // double _attitudeYawReading = 0;
+  double _attitudeYawReading = 0;
   late StreamSubscription attitudeSubscription;
 
   Future<void> _checkAvailability() async {
@@ -76,18 +76,18 @@ class _MyHomePageState extends State<MyHomePage> {
     attitudeSubscription =
         attitudeChannel.receiveBroadcastStream().listen((event) {
       setState(() {
-        // _attitudePitchReading = event.pitch;
-        _attitudeRollReading = event;
-        // _attitudeYawReading = event.yaw;
+        _attitudePitchReading = event["pitch"];
+        _attitudeRollReading = event["roll"];
+        _attitudeYawReading = event["yaw"];
       });
     });
   }
 
   _stopReading() {
     setState(() {
-      // _attitudePitchReading = 0;
+      _attitudePitchReading = 0;
       _attitudeRollReading = 0;
-      // _attitudeYawReading = 0;
+      _attitudeYawReading = 0;
     });
     attitudeSubscription.cancel();
   }
@@ -112,13 +112,24 @@ class _MyHomePageState extends State<MyHomePage> {
               const SizedBox(
                 height: 50.0,
               ),
-              if (_attitudeRollReading != 0)
-                Text('Roll: $_attitudeRollReading'),
-              if (_sensorAvailable == 'true' && _attitudeRollReading == 0)
+              if (_attitudeRollReading != 0 ||
+                  _attitudePitchReading != 0 ||
+                  _attitudeYawReading != 0)
+                Text('''
+                Pitch: $_attitudePitchReading 
+                Roll: $_attitudeRollReading 
+                Yaw: $_attitudeYawReading
+                '''),
+              if (_sensorAvailable == 'true' &&
+                  _attitudeRollReading == 0 &&
+                  _attitudePitchReading == 0 &&
+                  _attitudeYawReading == 0)
                 ElevatedButton(
                     onPressed: () => _startReading(),
                     child: const Text('Start Reading')),
-              if (_attitudeRollReading != 0)
+              if (_attitudeRollReading != 0 ||
+                  _attitudePitchReading != 0 ||
+                  _attitudeYawReading != 0)
                 ElevatedButton(
                     onPressed: () => _stopReading(),
                     child: const Text('Stop Reading')),
