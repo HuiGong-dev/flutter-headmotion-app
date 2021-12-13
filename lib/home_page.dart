@@ -29,6 +29,7 @@ class MyHomePageState extends State<MyHomePage> {
 
   bool _isDeviceSupported = false;
   bool _isAirpodsReady = false;
+  String _userAnswer = 'unknown';
   Map _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
   String lastMotionType = "still";
   String currentMotionType = "still";
@@ -62,11 +63,34 @@ class MyHomePageState extends State<MyHomePage> {
         _attitudePitchReading = event["pitch"];
         _attitudeRollReading = event["roll"];
         _attitudeYawReading = event["yaw"];
+
+        if (currentMotionType != lastMotionType &&
+            currentMotionType != "still") {
+          debugPrint('current motion: $currentMotionType');
+          handleHeadMotionEvent();
+        }
+
+        // Future.delayed(const Duration(milliseconds: 200), () {
+        //   _userAnswer = "unknown";
+        // });
       });
 
       _isReading = true;
       _updateMotionType();
     });
+  }
+
+  void nextQuestion() {
+    _userAnswer = "unknown";
+  }
+
+  void handleHeadMotionEvent() {
+    if (currentMotionType == "tilt left") {
+      _userAnswer = "true";
+    }
+    if (currentMotionType == "tilt right") {
+      _userAnswer = "false";
+    }
   }
 
   void _updateMotionType() {
@@ -100,7 +124,7 @@ class MyHomePageState extends State<MyHomePage> {
               children: const <Widget>[
                 Text(
                   'Your device or Airpods pro may not be ready.'
-                  'Please try later.',
+                  ' Please try later.',
                   softWrap: true,
                   style: TextStyle(
                     fontSize: 20,
@@ -114,11 +138,11 @@ class MyHomePageState extends State<MyHomePage> {
           actions: <Widget>[
             TextButton(
               child: const Text(
-                'Okay',
+                'Got it',
                 softWrap: true,
                 style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.w400,
+                  fontWeight: FontWeight.bold,
                   color: Colors.purple,
                 ),
               ),
@@ -159,7 +183,7 @@ class MyHomePageState extends State<MyHomePage> {
 
     double maxValue = _max(attitudeMap);
 
-    if (maxValue.abs() < 0.5) {
+    if (maxValue.abs() < 0.45) {
       return "still";
     }
     if (maxValue == roll) {
@@ -230,14 +254,16 @@ class MyHomePageState extends State<MyHomePage> {
 
     Widget buttonSection = Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: const <Widget>[
+      children: <Widget>[
         Icon(
-          Icons.check_circle_outline_outlined,
+          (_userAnswer == "true"
+              ? Icons.check_circle
+              : Icons.check_circle_outline),
           color: Colors.purple,
           size: 60,
         ),
         Icon(
-          Icons.dangerous_outlined,
+          (_userAnswer == "false" ? Icons.dangerous : Icons.dangerous_outlined),
           color: Colors.purple,
           size: 60,
         ),
