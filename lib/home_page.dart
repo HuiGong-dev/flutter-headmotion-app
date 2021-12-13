@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import './questions.dart';
+import 'package:soundpool/soundpool.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
@@ -27,6 +28,11 @@ class MyHomePageState extends State<MyHomePage> {
   static const attitudeChannel =
       EventChannel('com.huigong.headmotion/attitude');
 
+  Soundpool pool = Soundpool.fromOptions();
+  late int soundCorrect;
+  late int soundWrong;
+
+  bool _isSoundInited = false;
   bool _isDeviceSupported = false;
   bool _isAirpodsReady = false;
   String _userAnswer = 'unknown';
@@ -38,6 +44,20 @@ class MyHomePageState extends State<MyHomePage> {
   double _attitudeYawReading = 0;
   bool _isReading = false;
   late StreamSubscription attitudeSubscription;
+
+  Future<void> _initSound() async {
+    soundCorrect =
+        await rootBundle.load("sounds/correct.mp3").then((ByteData soundData) {
+      return pool.load(soundData);
+    });
+    await pool.play(soundCorrect);
+    soundWrong =
+        await rootBundle.load("sounds/wrong.mp3").then((ByteData soundData) {
+      return pool.load(soundData);
+    });
+    await pool.play(soundWrong);
+    _isSoundInited = true;
+  }
 
   Future<void> _checkAvailability() async {
     try {
@@ -66,7 +86,7 @@ class MyHomePageState extends State<MyHomePage> {
 
         if (currentMotionType != lastMotionType &&
             currentMotionType != "still") {
-          debugPrint('current motion: $currentMotionType');
+          debugPrint('motion event: $currentMotionType');
           handleHeadMotionEvent();
         }
 
@@ -84,12 +104,14 @@ class MyHomePageState extends State<MyHomePage> {
     _userAnswer = "unknown";
   }
 
-  void handleHeadMotionEvent() {
+  Future<void> handleHeadMotionEvent() async {
     if (currentMotionType == "tilt left") {
       _userAnswer = "true";
+      await pool.play(soundCorrect);
     }
     if (currentMotionType == "tilt right") {
       _userAnswer = "false";
+      await pool.play(soundWrong);
     }
   }
 
@@ -224,6 +246,10 @@ class MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isSoundInited) {
+      _initSound();
+    }
+
     if (_isDeviceSupported == false) {
       _checkAvailability();
     }
