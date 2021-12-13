@@ -27,7 +27,8 @@ class MyHomePageState extends State<MyHomePage> {
   static const attitudeChannel =
       EventChannel('com.huigong.headmotion/attitude');
 
-  String _sensorAvailable = "Unknown";
+  bool _isDeviceSupported = false;
+  bool _isAirpodsReady = false;
   Map _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
   String lastMotionType = "still";
   String currentMotionType = "still";
@@ -41,7 +42,7 @@ class MyHomePageState extends State<MyHomePage> {
     try {
       var available = await methodChannel.invokeMethod('isSensorAvailable');
       setState(() {
-        _sensorAvailable = available.toString();
+        _isDeviceSupported = available;
       });
     } on PlatformException catch (e) {
       debugPrint(e.toString());
@@ -68,8 +69,67 @@ class MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  _updateMotionType() {
+  void _updateMotionType() {
     lastMotionType = currentMotionType;
+  }
+
+  //todo: start game logic
+  void _startGame() {
+    if (!_isAirpodsReady || !_isAirpodsReady) {
+      _showMyDialog();
+    }
+  }
+
+  Future<void> _showMyDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Alert',
+            softWrap: true,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w400,
+              color: Colors.purple,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: const <Widget>[
+                Text(
+                  'Your device or Airpods pro may not be ready.'
+                  'Please try later.',
+                  softWrap: true,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w400,
+                    // color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Okay',
+                softWrap: true,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.purple,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   double _max(Map attitudeMap) {
@@ -140,6 +200,62 @@ class MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isDeviceSupported == false) {
+      _checkAvailability();
+    }
+    if (_isDeviceSupported) {
+      _startReading();
+    }
+    if (_isDeviceSupported == true && _attitudeRollReading != 0 ||
+        _attitudePitchReading != 0 ||
+        _attitudeYawReading != 0) {
+      _isAirpodsReady = true;
+    }
+
+    Widget textSection = Padding(
+      padding: const EdgeInsets.all(32),
+      child: Text(
+        '''
+         Device supported:  $_isDeviceSupported
+        Airpods Pro ready: $_isAirpodsReady
+        ''',
+        softWrap: true,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w400,
+          color: Colors.purple,
+        ),
+      ),
+    );
+
+    Widget buttonSection = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: const <Widget>[
+        Icon(
+          Icons.check_circle_outline_outlined,
+          color: Colors.purple,
+          size: 60,
+        ),
+        Icon(
+          Icons.dangerous_outlined,
+          color: Colors.purple,
+          size: 60,
+        ),
+      ],
+    );
+
+    Widget questionSection = const Padding(
+      padding: EdgeInsets.all(32),
+      child: Text(
+        'qestions section qestions section qestions section qestions section',
+        softWrap: true,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w400,
+          color: Colors.purple,
+        ),
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -147,50 +263,55 @@ class MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Align(
-          alignment: Alignment.center,
+          alignment: Alignment.centerLeft,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Device supported? : $_sensorAvailable'),
+              questionSection,
+              buttonSection,
+              textSection,
               ElevatedButton(
-                  onPressed: () => _checkAvailability(),
-                  child: const Text('Check Device Supported')),
-              const SizedBox(
-                height: 50.0,
-              ),
-              if (_attitudeRollReading != 0 ||
-                  _attitudePitchReading != 0 ||
-                  _attitudeYawReading != 0)
-                Text('''
-                Pitch: $_attitudePitchReading 
-                Roll: $_attitudeRollReading 
-                Yaw: $_attitudeYawReading
-                type: $currentMotionType
-                '''),
-              if (_sensorAvailable == 'true' &&
-                  _attitudeRollReading == 0 &&
-                  _attitudePitchReading == 0 &&
-                  _attitudeYawReading == 0)
-                ElevatedButton(
-                    onPressed: () => _startReading(),
-                    child: const Text('Start Reading')),
-              if (_attitudeRollReading != 0 ||
-                  _attitudePitchReading != 0 ||
-                  _attitudeYawReading != 0)
-                ElevatedButton(
-                    onPressed: () => _stopReading(),
-                    child: const Text('Stop Reading')),
-              const SizedBox(
-                height: 50,
-              ),
-              if (_sensorAvailable == 'true' && _isReading == true)
-                ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) =>
-                              const Questions(title: 'test nav')));
-                    },
-                    child: const Text('Go to Answer Questions')),
+                  onPressed: () => _startGame(),
+                  child: const Padding(
+                    padding: EdgeInsets.all(15),
+                    child: Text(
+                      "Start",
+                      style: TextStyle(
+                        fontSize: 30,
+                      ),
+                    ),
+                  ))
+              // if (_attitudeRollReading != 0 ||
+              //     _attitudePitchReading != 0 ||
+              //     _attitudeYawReading != 0)
+              //   Text('''
+              //   Pitch: $_attitudePitchReading
+              //   Roll: $_attitudeRollReading
+              //   Yaw: $_attitudeYawReading
+              //   type: $currentMotionType
+              //   '''),
+              // if (_isDeviceSupported == true &&
+              //     _attitudeRollReading == 0 &&
+              //     _attitudePitchReading == 0 &&
+              //     _attitudeYawReading == 0)
+              //   ElevatedButton(
+              //       onPressed: () => _startReading(),
+              //       child: const Text('Start Reading')),
+              // if (_attitudeRollReading != 0 ||
+              //     _attitudePitchReading != 0 ||
+              //     _attitudeYawReading != 0)
+              //   ElevatedButton(
+              //       onPressed: () => _stopReading(),
+              //       child: const Text('Stop Reading')),
+
+              // if (_isDeviceSupported == true && _isReading == true)
+              //   ElevatedButton(
+              //       onPressed: () {
+              //         Navigator.of(context).push(MaterialPageRoute(
+              //             builder: (context) =>
+              //                 const Questions(title: 'test nav')));
+              //       },
+              //       child: const Text('Go to Answer Questions')),
             ],
           )),
     );
