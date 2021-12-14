@@ -32,6 +32,8 @@ dependencies:
 
   
   soundpool: ^2.2.0
+  http: ^0.13.4
+  html_unescape: ^2.0.0
 
 
 

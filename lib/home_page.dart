@@ -1,21 +1,34 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import './questions.dart';
 import 'package:soundpool/soundpool.dart';
+import 'package:http/http.dart' as http;
+import 'package:html_unescape/html_unescape.dart';
+import './question.dart';
+
+Future<List<Question>> fetchQuestions(http.Client client) async {
+  final response = await client.get(Uri.parse(
+      'https://opentdb.com/api.php?amount=3&category=9&type=boolean'));
+
+  return compute(parseQuestions, response.body);
+}
+
+List<Question> parseQuestions(String responseBody) {
+  final parsed = jsonDecode(responseBody).cast<String, dynamic>();
+
+  final responseCode = parsed['response_code'];
+  final responseResults = parsed['results'];
+  debugPrint(responseResults[0].toString());
+  return responseResults
+      .map<Question>((json) => Question.fromJson(json))
+      .toList();
+}
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -50,12 +63,12 @@ class MyHomePageState extends State<MyHomePage> {
         await rootBundle.load("sounds/correct.mp3").then((ByteData soundData) {
       return pool.load(soundData);
     });
-    await pool.play(soundCorrect);
+
     soundWrong =
         await rootBundle.load("sounds/wrong.mp3").then((ByteData soundData) {
       return pool.load(soundData);
     });
-    await pool.play(soundWrong);
+
     _isSoundInited = true;
   }
 
@@ -65,6 +78,9 @@ class MyHomePageState extends State<MyHomePage> {
       setState(() {
         _isDeviceSupported = available;
       });
+      //test fetch questions
+      var questions = await fetchQuestions(http.Client());
+      debugPrint("questions:" + HtmlUnescape().convert(questions[0].question));
     } on PlatformException catch (e) {
       debugPrint(e.toString());
     }
