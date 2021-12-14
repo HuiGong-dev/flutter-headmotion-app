@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/questions.dart';
 import 'package:soundpool/soundpool.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
@@ -11,7 +12,7 @@ import './question.dart';
 
 Future<List<Question>> fetchQuestions(http.Client client) async {
   final response = await client.get(Uri.parse(
-      'https://opentdb.com/api.php?amount=3&category=9&type=boolean'));
+      'https://opentdb.com/api.php?amount=5&category=9&type=boolean'));
 
   return compute(parseQuestions, response.body);
 }
@@ -21,7 +22,7 @@ List<Question> parseQuestions(String responseBody) {
 
   final responseCode = parsed['response_code'];
   final responseResults = parsed['results'];
-  debugPrint(responseResults[0].toString());
+
   return responseResults
       .map<Question>((json) => Question.fromJson(json))
       .toList();
@@ -57,6 +58,11 @@ class MyHomePageState extends State<MyHomePage> {
   double _attitudeYawReading = 0;
   bool _isReading = false;
   late StreamSubscription attitudeSubscription;
+  List<Question>? questions;
+  int currentQuestionIndex = 0;
+  int headMotionCount = 0;
+  int userCorrectCount = 0;
+  bool isGameStarted = false;
 
   Future<void> _initSound() async {
     soundCorrect =
@@ -74,13 +80,8 @@ class MyHomePageState extends State<MyHomePage> {
 
   Future<void> _checkAvailability() async {
     try {
-      var available = await methodChannel.invokeMethod('isSensorAvailable');
-      setState(() {
-        _isDeviceSupported = available;
-      });
-      //test fetch questions
-      var questions = await fetchQuestions(http.Client());
-      debugPrint("questions:" + HtmlUnescape().convert(questions[0].question));
+      _isDeviceSupported =
+          await methodChannel.invokeMethod('isSensorAvailable');
     } on PlatformException catch (e) {
       debugPrint(e.toString());
     }
@@ -89,27 +90,22 @@ class MyHomePageState extends State<MyHomePage> {
   _startReading() {
     attitudeSubscription =
         attitudeChannel.receiveBroadcastStream().listen((event) {
-      setState(() {
-        _currentAttitude = {
-          "pitch": event["pitch"],
-          "roll": event["roll"],
-          "yaw": event["yaw"]
-        };
-        currentMotionType = _getMotionType(_currentAttitude);
-        _attitudePitchReading = event["pitch"];
-        _attitudeRollReading = event["roll"];
-        _attitudeYawReading = event["yaw"];
+      _currentAttitude = {
+        "pitch": event["pitch"],
+        "roll": event["roll"],
+        "yaw": event["yaw"]
+      };
+      currentMotionType = _getMotionType(_currentAttitude);
+      _attitudePitchReading = event["pitch"];
+      _attitudeRollReading = event["roll"];
+      _attitudeYawReading = event["yaw"];
 
-        if (currentMotionType != lastMotionType &&
-            currentMotionType != "still") {
-          debugPrint('motion event: $currentMotionType');
-          handleHeadMotionEvent();
-        }
-
-        // Future.delayed(const Duration(milliseconds: 200), () {
-        //   _userAnswer = "unknown";
-        // });
-      });
+      if (isGameStarted &&
+          currentMotionType != lastMotionType &&
+          currentMotionType != "still") {
+        debugPrint('motion event: $currentMotionType');
+        handleHeadMotionEvent();
+      }
 
       _isReading = true;
       _updateMotionType();
@@ -117,17 +113,55 @@ class MyHomePageState extends State<MyHomePage> {
   }
 
   void nextQuestion() {
-    _userAnswer = "unknown";
+    if (currentQuestionIndex + 1 < questions!.length) {
+      currentQuestionIndex++;
+      debugPrint(
+          "increased index to: $currentQuestionIndex. correct answer: ${questions![currentQuestionIndex].correctAnswer}");
+      _userAnswer = "unknown";
+      setState(() {
+        debugPrint("set state called from next question");
+      });
+    } else {
+      //to show start button
+      isGameStarted = false;
+      _showScore();
+    }
   }
 
   Future<void> handleHeadMotionEvent() async {
     if (currentMotionType == "tilt left") {
-      _userAnswer = "true";
-      await pool.play(soundCorrect);
+      headMotionCount++;
+      _userAnswer = "True";
+      if (questions![currentQuestionIndex].correctAnswer == _userAnswer) {
+        userCorrectCount++;
+        await pool.play(soundCorrect);
+      } else {
+        await pool.play(soundWrong);
+      }
+      setState(() {
+        debugPrint("set state called from tilt left event");
+      });
+
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        nextQuestion();
+      });
     }
     if (currentMotionType == "tilt right") {
-      _userAnswer = "false";
-      await pool.play(soundWrong);
+      headMotionCount++;
+      _userAnswer = "False";
+      if (questions![currentQuestionIndex].correctAnswer == _userAnswer) {
+        userCorrectCount++;
+        await pool.play(soundCorrect);
+      } else {
+        await pool.play(soundWrong);
+      }
+      setState(() {
+        debugPrint("set state called from tilt right event");
+      });
+
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        nextQuestion();
+      });
     }
   }
 
@@ -136,10 +170,97 @@ class MyHomePageState extends State<MyHomePage> {
   }
 
   //todo: start game logic
-  void _startGame() {
-    if (!_isAirpodsReady || !_isAirpodsReady) {
+  Future<void> _startGame() async {
+    checkAirpods();
+    if (!_isDeviceSupported) {
+      debugPrint('device: $_isDeviceSupported. pods: $_isAirpodsReady');
       _showMyDialog();
+    } else {
+      questions = await fetchQuestions(http.Client());
+
+      questions == null ? isGameStarted = false : isGameStarted = true;
+      setState(() {});
     }
+  }
+
+  void _gameOver() {
+    questions = null;
+    _userAnswer = 'unknown';
+    _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
+    lastMotionType = "still";
+    currentMotionType = "still";
+    _attitudePitchReading = 0;
+    _attitudeRollReading = 0;
+    _attitudeYawReading = 0;
+
+    currentQuestionIndex = 0;
+    headMotionCount = 0;
+    userCorrectCount = 0;
+    isGameStarted = false;
+    setState(() {});
+  }
+
+  void checkAirpods() {
+    if (_attitudeRollReading != 0 ||
+        _attitudePitchReading != 0 ||
+        _attitudeYawReading != 0) {
+      _isAirpodsReady = true;
+    }
+  }
+
+  Future<void> _showScore() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Game Over',
+            softWrap: true,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w400,
+              color: Colors.purple,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  '''
+                  Your Score is: 
+                  $userCorrectCount/${questions!.length}
+                  ''',
+                  softWrap: true,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Got it',
+                softWrap: true,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              onPressed: () {
+                _gameOver();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _showMyDialog() async {
@@ -161,8 +282,8 @@ class MyHomePageState extends State<MyHomePage> {
             child: ListBody(
               children: const <Widget>[
                 Text(
-                  'Your device or Airpods pro may not be ready.'
-                  ' Please try later.',
+                  'Your device may not support Airpods Pro head motion.'
+                  ' Please connect your phone with Airpods Pro and try again.',
                   softWrap: true,
                   style: TextStyle(
                     fontSize: 20,
@@ -221,7 +342,7 @@ class MyHomePageState extends State<MyHomePage> {
 
     double maxValue = _max(attitudeMap);
 
-    if (maxValue.abs() < 0.45) {
+    if (maxValue.abs() < 0.4) {
       return "still";
     }
     if (maxValue == roll) {
@@ -250,15 +371,15 @@ class MyHomePageState extends State<MyHomePage> {
     return "still";
   }
 
-  _stopReading() {
-    setState(() {
-      _attitudePitchReading = 0;
-      _attitudeRollReading = 0;
-      _attitudeYawReading = 0;
-    });
-    attitudeSubscription.cancel();
-    _isReading = false;
-  }
+  // _stopReading() {
+  //   setState(() {
+  //     _attitudePitchReading = 0;
+  //     _attitudeRollReading = 0;
+  //     _attitudeYawReading = 0;
+  //   });
+  //   attitudeSubscription.cancel();
+  //   _isReading = false;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -279,19 +400,33 @@ class MyHomePageState extends State<MyHomePage> {
     }
 
     Widget textSection = Container(
-        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(32),
+        margin: const EdgeInsets.only(top: 20),
         alignment: Alignment.bottomLeft,
-        child: Text(
-          '''
-         Device supported:  $_isDeviceSupported
-        Airpods Pro ready: $_isAirpodsReady
-        ''',
-          softWrap: true,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w400,
-            color: Colors.purple,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Text(
+              questions == null
+                  ? 'Progress: 0/?'
+                  : 'Progress: $headMotionCount /${questions!.length}',
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: Colors.purple,
+              ),
+            ),
+            Text(
+              'Correct: $userCorrectCount',
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: Colors.purple,
+              ),
+            )
+          ],
         ));
 
     Widget buttonSection = Container(
@@ -300,17 +435,17 @@ class MyHomePageState extends State<MyHomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
           Icon(
-            (_userAnswer == "true"
+            (_userAnswer == "True"
                 ? Icons.check_circle
                 : Icons.check_circle_outline),
             color: Colors.purple,
             size: 70,
           ),
           Icon(
-            (_userAnswer == "false"
+            (_userAnswer == "False"
                 ? Icons.dangerous
                 : Icons.dangerous_outlined),
-            color: Colors.purple,
+            color: Theme.of(context).colorScheme.primary,
             size: 70,
           ),
         ],
@@ -318,7 +453,7 @@ class MyHomePageState extends State<MyHomePage> {
     );
 
     Widget questionSection = Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(left: 20, bottom: 20, right: 20),
       padding: const EdgeInsets.all(32),
       height: 300,
       decoration: BoxDecoration(
@@ -329,10 +464,12 @@ class MyHomePageState extends State<MyHomePage> {
         borderRadius: BorderRadius.circular(20),
       ),
       alignment: Alignment.centerLeft,
-      child: const Text(
-        'Furby was released in 1998.',
+      child: Text(
+        questions == null
+            ? 'Press start button to start game'
+            : HtmlUnescape().convert(questions![currentQuestionIndex].question),
         softWrap: true,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 23,
           fontWeight: FontWeight.w400,
           color: Colors.purple,
@@ -341,22 +478,19 @@ class MyHomePageState extends State<MyHomePage> {
     );
 
     Widget startButton = Container(
-      child: Align(
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: 200,
-            height: 70,
-            child: ElevatedButton(
-                onPressed: () => _startGame(),
-                child: const Padding(
-                  padding: EdgeInsets.all(15),
-                  child: Text(
-                    "Start",
-                    style: TextStyle(
-                      fontSize: 32,
-                    ),
-                  ),
-                )),
+      alignment: Alignment.center,
+      width: 200,
+      height: 70,
+      child: ElevatedButton(
+          onPressed: () => _startGame(),
+          child: const Padding(
+            padding: EdgeInsets.all(15),
+            child: Text(
+              "Start",
+              style: TextStyle(
+                fontSize: 32,
+              ),
+            ),
           )),
     );
 
@@ -369,42 +503,10 @@ class MyHomePageState extends State<MyHomePage> {
       body: ListView(
         // alignment: Alignment.centerLeft,
         children: [
+          textSection,
           questionSection,
           buttonSection,
-          startButton,
-          textSection,
-
-          // if (_attitudeRollReading != 0 ||
-          //     _attitudePitchReading != 0 ||
-          //     _attitudeYawReading != 0)
-          //   Text('''
-          //   Pitch: $_attitudePitchReading
-          //   Roll: $_attitudeRollReading
-          //   Yaw: $_attitudeYawReading
-          //   type: $currentMotionType
-          //   '''),
-          // if (_isDeviceSupported == true &&
-          //     _attitudeRollReading == 0 &&
-          //     _attitudePitchReading == 0 &&
-          //     _attitudeYawReading == 0)
-          //   ElevatedButton(
-          //       onPressed: () => _startReading(),
-          //       child: const Text('Start Reading')),
-          // if (_attitudeRollReading != 0 ||
-          //     _attitudePitchReading != 0 ||
-          //     _attitudeYawReading != 0)
-          //   ElevatedButton(
-          //       onPressed: () => _stopReading(),
-          //       child: const Text('Stop Reading')),
-
-          // if (_isDeviceSupported == true && _isReading == true)
-          //   ElevatedButton(
-          //       onPressed: () {
-          //         Navigator.of(context).push(MaterialPageRoute(
-          //             builder: (context) =>
-          //                 const Questions(title: 'test nav')));
-          //       },
-          //       child: const Text('Go to Answer Questions')),
+          if (isGameStarted == false) startButton,
         ],
       ),
     );
