@@ -278,110 +278,135 @@ class MyHomePageState extends State<MyHomePage> {
       _isAirpodsReady = true;
     }
 
-    Widget textSection = Padding(
-      padding: const EdgeInsets.all(32),
-      child: Text(
-        '''
+    Widget textSection = Container(
+        margin: const EdgeInsets.all(20),
+        alignment: Alignment.bottomLeft,
+        child: Text(
+          '''
          Device supported:  $_isDeviceSupported
         Airpods Pro ready: $_isAirpodsReady
         ''',
-        softWrap: true,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w400,
-          color: Colors.purple,
-        ),
+          softWrap: true,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w400,
+            color: Colors.purple,
+          ),
+        ));
+
+    Widget buttonSection = Container(
+      margin: const EdgeInsets.only(bottom: 32),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: <Widget>[
+          Icon(
+            (_userAnswer == "true"
+                ? Icons.check_circle
+                : Icons.check_circle_outline),
+            color: Colors.purple,
+            size: 70,
+          ),
+          Icon(
+            (_userAnswer == "false"
+                ? Icons.dangerous
+                : Icons.dangerous_outlined),
+            color: Colors.purple,
+            size: 70,
+          ),
+        ],
       ),
     );
 
-    Widget buttonSection = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: <Widget>[
-        Icon(
-          (_userAnswer == "true"
-              ? Icons.check_circle
-              : Icons.check_circle_outline),
-          color: Colors.purple,
-          size: 60,
+    Widget questionSection = Container(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(32),
+      height: 300,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary,
+          width: 5,
         ),
-        Icon(
-          (_userAnswer == "false" ? Icons.dangerous : Icons.dangerous_outlined),
-          color: Colors.purple,
-          size: 60,
-        ),
-      ],
-    );
-
-    Widget questionSection = const Padding(
-      padding: EdgeInsets.all(32),
-      child: Text(
-        'qestions section qestions section qestions section qestions section',
+        borderRadius: BorderRadius.circular(20),
+      ),
+      alignment: Alignment.centerLeft,
+      child: const Text(
+        'Furby was released in 1998.',
         softWrap: true,
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 23,
           fontWeight: FontWeight.w400,
           color: Colors.purple,
         ),
       ),
     );
+
+    Widget startButton = Container(
+      child: Align(
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: 200,
+            height: 70,
+            child: ElevatedButton(
+                onPressed: () => _startGame(),
+                child: const Padding(
+                  padding: EdgeInsets.all(15),
+                  child: Text(
+                    "Start",
+                    style: TextStyle(
+                      fontSize: 32,
+                    ),
+                  ),
+                )),
+          )),
+    );
+
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Align(
-          alignment: Alignment.centerLeft,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              questionSection,
-              buttonSection,
-              textSection,
-              ElevatedButton(
-                  onPressed: () => _startGame(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(15),
-                    child: Text(
-                      "Start",
-                      style: TextStyle(
-                        fontSize: 30,
-                      ),
-                    ),
-                  ))
-              // if (_attitudeRollReading != 0 ||
-              //     _attitudePitchReading != 0 ||
-              //     _attitudeYawReading != 0)
-              //   Text('''
-              //   Pitch: $_attitudePitchReading
-              //   Roll: $_attitudeRollReading
-              //   Yaw: $_attitudeYawReading
-              //   type: $currentMotionType
-              //   '''),
-              // if (_isDeviceSupported == true &&
-              //     _attitudeRollReading == 0 &&
-              //     _attitudePitchReading == 0 &&
-              //     _attitudeYawReading == 0)
-              //   ElevatedButton(
-              //       onPressed: () => _startReading(),
-              //       child: const Text('Start Reading')),
-              // if (_attitudeRollReading != 0 ||
-              //     _attitudePitchReading != 0 ||
-              //     _attitudeYawReading != 0)
-              //   ElevatedButton(
-              //       onPressed: () => _stopReading(),
-              //       child: const Text('Stop Reading')),
+      body: ListView(
+        // alignment: Alignment.centerLeft,
+        children: [
+          questionSection,
+          buttonSection,
+          startButton,
+          textSection,
 
-              // if (_isDeviceSupported == true && _isReading == true)
-              //   ElevatedButton(
-              //       onPressed: () {
-              //         Navigator.of(context).push(MaterialPageRoute(
-              //             builder: (context) =>
-              //                 const Questions(title: 'test nav')));
-              //       },
-              //       child: const Text('Go to Answer Questions')),
-            ],
-          )),
+          // if (_attitudeRollReading != 0 ||
+          //     _attitudePitchReading != 0 ||
+          //     _attitudeYawReading != 0)
+          //   Text('''
+          //   Pitch: $_attitudePitchReading
+          //   Roll: $_attitudeRollReading
+          //   Yaw: $_attitudeYawReading
+          //   type: $currentMotionType
+          //   '''),
+          // if (_isDeviceSupported == true &&
+          //     _attitudeRollReading == 0 &&
+          //     _attitudePitchReading == 0 &&
+          //     _attitudeYawReading == 0)
+          //   ElevatedButton(
+          //       onPressed: () => _startReading(),
+          //       child: const Text('Start Reading')),
+          // if (_attitudeRollReading != 0 ||
+          //     _attitudePitchReading != 0 ||
+          //     _attitudeYawReading != 0)
+          //   ElevatedButton(
+          //       onPressed: () => _stopReading(),
+          //       child: const Text('Stop Reading')),
+
+          // if (_isDeviceSupported == true && _isReading == true)
+          //   ElevatedButton(
+          //       onPressed: () {
+          //         Navigator.of(context).push(MaterialPageRoute(
+          //             builder: (context) =>
+          //                 const Questions(title: 'test nav')));
+          //       },
+          //       child: const Text('Go to Answer Questions')),
+        ],
+      ),
     );
   }
 }
