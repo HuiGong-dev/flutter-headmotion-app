@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,10 +10,16 @@ import 'package:soundpool/soundpool.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
 import './question.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 Future<List<Question>> fetchQuestions(http.Client client) async {
+  final randomNumber = Random();
+// random question number from 5 to 10
+  int questionNumber = 5 + randomNumber.nextInt(6);
   final response = await client.get(Uri.parse(
-      'https://opentdb.com/api.php?amount=5&category=9&type=boolean'));
+      'https://opentdb.com/api.php?amount=' +
+          questionNumber.toString() +
+          '&category=18&type=boolean'));
 
   return compute(parseQuestions, response.body);
 }
@@ -128,14 +135,39 @@ class MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void showCorrectToast() {
+    Fluttertoast.showToast(
+        msg: "Correct!",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0);
+  }
+
+  void showWrongToast() {
+    Fluttertoast.showToast(
+        msg:
+            'Uh-oh, it\'s actually ${questions![currentQuestionIndex].correctAnswer} ',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0);
+  }
+
   Future<void> handleHeadMotionEvent() async {
     if (currentMotionType == "tilt left") {
       headMotionCount++;
       _userAnswer = "True";
       if (questions![currentQuestionIndex].correctAnswer == _userAnswer) {
         userCorrectCount++;
+        showCorrectToast();
         await pool.play(soundCorrect);
       } else {
+        showWrongToast();
         await pool.play(soundWrong);
       }
       setState(() {
@@ -151,8 +183,10 @@ class MyHomePageState extends State<MyHomePage> {
       _userAnswer = "False";
       if (questions![currentQuestionIndex].correctAnswer == _userAnswer) {
         userCorrectCount++;
+        showCorrectToast();
         await pool.play(soundCorrect);
       } else {
+        showWrongToast();
         await pool.play(soundWrong);
       }
       setState(() {
@@ -219,26 +253,20 @@ class MyHomePageState extends State<MyHomePage> {
             softWrap: true,
             style: TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.bold,
               color: Colors.purple,
             ),
           ),
           content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text(
-                  '''
-                  Your Score is: 
-                  $userCorrectCount/${questions!.length}
-                  ''',
-                  softWrap: true,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.purple,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Your Score is:'
+              '$userCorrectCount/${questions!.length}',
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
+                color: Colors.purple,
+              ),
             ),
           ),
           actions: <Widget>[
@@ -249,7 +277,7 @@ class MyHomePageState extends State<MyHomePage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.purple,
+                  color: Color(0xFF753188),
                 ),
               ),
               onPressed: () {
@@ -288,6 +316,7 @@ class MyHomePageState extends State<MyHomePage> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w400,
+                    color: Color(0xFF753188),
                     // color: Colors.purple,
                   ),
                 ),
@@ -414,7 +443,7 @@ class MyHomePageState extends State<MyHomePage> {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w400,
-                color: Colors.purple,
+                color: Color(0xFF753188),
               ),
             ),
             Text(
@@ -423,7 +452,7 @@ class MyHomePageState extends State<MyHomePage> {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w400,
-                color: Colors.purple,
+                color: Color(0xFF753188),
               ),
             )
           ],
@@ -482,6 +511,7 @@ class MyHomePageState extends State<MyHomePage> {
       width: 200,
       height: 70,
       child: ElevatedButton(
+          style: ElevatedButton.styleFrom(primary: const Color(0xFF753188)),
           onPressed: () => _startGame(),
           child: const Padding(
             padding: EdgeInsets.all(15),
