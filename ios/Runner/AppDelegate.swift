@@ -22,6 +22,8 @@ import CoreMotion
           switch call.method {
           case "isSensorAvailable":
               result(CMHeadphoneMotionManager().isDeviceMotionAvailable)
+          case "isDeviceMotionActive":
+              result(CMHeadphoneMotionManager().isDeviceMotionActive)    
           default:
               result(FlutterMethodNotImplemented)
           }

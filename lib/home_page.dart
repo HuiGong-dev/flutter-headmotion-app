@@ -5,7 +5,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:myapp/questions.dart';
+// import 'package:myapp/questions.dart';
 import 'package:soundpool/soundpool.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
@@ -28,6 +28,9 @@ List<Question> parseQuestions(String responseBody) {
   final parsed = jsonDecode(responseBody).cast<String, dynamic>();
 
   final responseCode = parsed['response_code'];
+  if (responseCode != 0) {
+    debugPrint("Error! API respond code: $responseCode");
+  }
   final responseResults = parsed['results'];
 
   return responseResults
@@ -55,6 +58,7 @@ class MyHomePageState extends State<MyHomePage> {
 
   bool _isSoundInited = false;
   bool _isDeviceSupported = false;
+  // bool _isDeviceMotionActive = false;
   bool _isAirpodsReady = false;
   String _userAnswer = 'unknown';
   Map _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
@@ -93,6 +97,15 @@ class MyHomePageState extends State<MyHomePage> {
       debugPrint(e.toString());
     }
   }
+
+  // Future<void> _checkIsDeviceMotionActive() async {
+  //   try {
+  //     _isDeviceMotionActive =
+  //         await methodChannel.invokeMethod('isDeviceMotionActive');
+  //   } on PlatformException catch (e) {
+  //     debugPrint(e.toString());
+  //   }
+  // }
 
   _startReading() {
     attitudeSubscription =
@@ -206,6 +219,8 @@ class MyHomePageState extends State<MyHomePage> {
   //todo: start game logic
   Future<void> _startGame() async {
     checkAirpods();
+    // _checkIsDeviceMotionActive();
+    //debugPrint("_checkIsDeviceMotionActive: $_isDeviceMotionActive");
     if (!_isDeviceSupported) {
       debugPrint('device: $_isDeviceSupported. pods: $_isAirpodsReady');
       _showMyDialog();
