@@ -11,10 +11,8 @@ import CoreMotion
       
       let METHOD_CHANNEL_NAME = "com.huigong.headmotion/method"
       let ATTITUDE_CHANNEL_NAME = "com.huigong.headmotion/attitude"
-      let attitudeStreamHandler = AttitudeStreamHandler()
-      
-      let controller : FlutterViewController  = window?.rootViewController as! FlutterViewController
-      
+      let attitudeStreamHandler = AttitudeStreamHandler()     
+      let controller : FlutterViewController  = window?.rootViewController as! FlutterViewController      
       let methodChannel = FlutterMethodChannel(name: METHOD_CHANNEL_NAME, binaryMessenger: controller.binaryMessenger)
       
       methodChannel.setMethodCallHandler({

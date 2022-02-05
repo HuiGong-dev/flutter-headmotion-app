@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'package:myapp/questions.dart';
 import 'package:soundpool/soundpool.dart';
 import 'package:http/http.dart' as http;
 import 'package:html_unescape/html_unescape.dart';
@@ -58,7 +56,6 @@ class MyHomePageState extends State<MyHomePage> {
 
   bool _isSoundInited = false;
   bool _isDeviceSupported = false;
-  // bool _isDeviceMotionActive = false;
   bool _isAirpodsReady = false;
   String _userAnswer = 'unknown';
   Map _currentAttitude = {"pitch": 0.0, "roll": 0.0, "yaw": 0.0};
@@ -67,7 +64,6 @@ class MyHomePageState extends State<MyHomePage> {
   double _attitudePitchReading = 0;
   double _attitudeRollReading = 0;
   double _attitudeYawReading = 0;
-  bool _isReading = false;
   late StreamSubscription attitudeSubscription;
   List<Question>? questions;
   int currentQuestionIndex = 0;
@@ -127,7 +123,7 @@ class MyHomePageState extends State<MyHomePage> {
         handleHeadMotionEvent();
       }
 
-      _isReading = true;
+      //_isReading = true;
       _updateMotionType();
     });
   }

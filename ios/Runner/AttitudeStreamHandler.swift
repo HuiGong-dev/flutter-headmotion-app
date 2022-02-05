@@ -13,13 +13,6 @@ class AttitudeStreamHandler : NSObject, FlutterStreamHandler {
     let APP = CMHeadphoneMotionManager()
     private let queue = OperationQueue()
     
-//    APP.delegate = self
-    
-//    guard APP.isDeviceMotionAvailable else {
-//        self.Alert("Sorry", "Your device is not supported.")
-//        UITextView.text = "Sorry, Your device is not supported."
-//        return
-//    }
     
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         
@@ -29,7 +22,6 @@ class AttitudeStreamHandler : NSObject, FlutterStreamHandler {
                     //get attitude
                     //create a dict for attitude pitch, roll and yaw.
                     var attitudeDict = ["pitch":data?.attitude.pitch, "roll":data?.attitude.roll, "yaw":data?.attitude.yaw]
-                    // let attitudeRoll = data?.attitude.roll
                     events(attitudeDict)
                 }
                 
